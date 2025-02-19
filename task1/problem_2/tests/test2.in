@@ -1,0 +1,7 @@
+visit google.com
+visit linux.org
+visit youtube.com
+back 1
+visit facebook.com
+back 1
+forward 1
