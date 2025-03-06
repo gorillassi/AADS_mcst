@@ -1,35 +1,33 @@
-import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Загрузка данных из CSV файла
-data = pd.read_csv("sorting_times.csv")
+file_path = "sorting_results.csv"
+try:
+    df = pd.read_csv(file_path)
 
-# График для различных размеров массива
-plt.figure(figsize=(10, 6))
-for shuffle_percent in data['ShufflingPercent'].unique():
-    subset = data[data['ShufflingPercent'] == shuffle_percent]
-    plt.plot(subset['N'], subset['BubbleSortTime'], label=f'Bubble Sort (Shuffle {shuffle_percent}%)')
-    plt.plot(subset['N'], subset['ShakerSortTime'], label=f'Shaker Sort (Shuffle {shuffle_percent}%)')
-    plt.plot(subset['N'], subset['CombSortTime'], label=f'Comb Sort (Shuffle {shuffle_percent}%)')
+    df["Size"] = df["Size"].astype(int)
+    df["Disorder"] = df["Disorder"].astype(float)
+    df["Time"] = df["Time"].astype(float)
 
-plt.xlabel('Размер массива (N)')
-plt.ylabel('Время (мс)')
-plt.title('Сравнение времени работы для разных размеров массива')
-plt.legend()
-plt.grid(True)
-plt.show()
+    plt.figure(figsize=(12, 6))
+    sns.lineplot(data=df, x="Size", y="Time", hue="Algorithm", style="Disorder", markers=True)
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlabel("Размер массива (лог масштаб)")
+    plt.ylabel("Среднее время выполнения (мкс, лог масштаб)")
+    plt.title("Зависимость времени сортировки от размера массива и степени перемешивания")
+    plt.legend(title="Алгоритм и % перемешивания")
+    plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+    plt.show()
 
-# График для степени упорядоченности
-plt.figure(figsize=(10, 6))
-for size in data['N'].unique():
-    subset = data[data['N'] == size]
-    plt.plot(subset['ShufflingPercent'], subset['BubbleSortTime'], label=f'Bubble Sort (Size {size})')
-    plt.plot(subset['ShufflingPercent'], subset['ShakerSortTime'], label=f'Shaker Sort (Size {size})')
-    plt.plot(subset['ShufflingPercent'], subset['CombSortTime'], label=f'Comb Sort (Size {size})')
-
-plt.xlabel('Степень упорядоченности (%)')
-plt.ylabel('Время (мс)')
-plt.title('Сравнение времени работы для разных степеней упорядоченности')
-plt.legend()
-plt.grid(True)
-plt.show()
+    plt.figure(figsize=(12, 6))
+    sns.lineplot(data=df, x="Disorder", y="Time", hue="Algorithm", style="Size", markers=True)
+    plt.xlabel("Степень перемешивания массива (%)")
+    plt.ylabel("Среднее время выполнения (мкс)")
+    plt.title("Зависимость времени сортировки от степени перемешивания массива")
+    plt.legend(title="Алгоритм и размер массива")
+    plt.grid(True, linestyle="--", linewidth=0.5)
+    plt.show()
+except FileNotFoundError:
+    print(f"Ошибка: Файл {file_path} не найден. Сначала запустите C++ программу для генерации данных.")

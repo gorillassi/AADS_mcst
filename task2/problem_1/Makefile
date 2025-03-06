@@ -1,5 +1,3 @@
-# Makefile для компиляции и запуска программы
-
 CXX = g++
 CXXFLAGS = -std=c++17 -O2
 

@@ -1,80 +1,31 @@
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <random>
-#include <cstdlib>
-#include <fstream>
 
 using namespace std;
-using namespace std::chrono;
+using namespace chrono;
 
-struct DynamicArray {
+
+class ManualArray {
+public:
     int* data;
     int size;
-    int capacity;
-
-    DynamicArray(int initial_capacity = 10) {
-        capacity = initial_capacity;
-        size = 0;
-        data = new int[capacity];
-    }
-
-    DynamicArray(const DynamicArray& other) {
-        size = other.size;
-        capacity = other.capacity;
-        data = new int[capacity];
-        for (int i = 0; i < size; ++i) {
-            data[i] = other.data[i];
-        }
-    }
-
-    DynamicArray& operator=(const DynamicArray& other) {
-        if (this == &other) return *this;  
-
-        delete[] data; 
-
-        size = other.size;
-        capacity = other.capacity;
-        data = new int[capacity];
-        for (int i = 0; i < size; ++i) {
-            data[i] = other.data[i];
-        }
-        return *this;
-    }
-
-    ~DynamicArray() {
-        delete[] data;
-    }
-
-    void push_back(int value) {
-        if (size == capacity) {
-            capacity *= 2;
-            int* new_data = new int[capacity];
-            for (int i = 0; i < size; ++i) {
-                new_data[i] = data[i];
-            }
-            delete[] data;
-            data = new_data;
-        }
-        data[size++] = value;
-    }
-
-    int& operator[](int index) {
-        return data[index];
-    }
-
-    int operator[](int index) const {
-        return data[index];
-    }
+    ManualArray(int s) : size(s) { data = new int[s]; }
+    ~ManualArray() { delete[] data; }
+    int get(int index) { return data[index]; }
+    void set(int index, int value) { data[index] = value; }
 };
 
-void bubbleSort(DynamicArray& arr) {
-    int n = arr.size;
+void bubbleSort(ManualArray& arr) {
     bool swapped;
-    for (int i = 0; i < n - 1; i++) {
+    for (int i = 0; i < arr.size - 1; ++i) {
         swapped = false;
-        for (int j = 0; j < n - i - 1; j++) {
-            if (arr[j] > arr[j + 1]) {
-                swap(arr[j], arr[j + 1]);
+        for (int j = 0; j < arr.size - i - 1; ++j) {
+            if (arr.get(j) > arr.get(j + 1)) {
+                int temp = arr.get(j);
+                arr.set(j, arr.get(j + 1));
+                arr.set(j + 1, temp);
                 swapped = true;
             }
         }
@@ -82,134 +33,101 @@ void bubbleSort(DynamicArray& arr) {
     }
 }
 
-void shakerSort(DynamicArray& arr) {
-    int n = arr.size;
+void shakerSort(ManualArray& arr) {
     bool swapped = true;
-    int start = 0, end = n - 1;
-
+    int start = 0, end = arr.size - 1;
     while (swapped) {
         swapped = false;
-        for (int i = start; i < end; i++) {
-            if (arr[i] > arr[i + 1]) {
-                swap(arr[i], arr[i + 1]);
+        for (int i = start; i < end; ++i) {
+            if (arr.get(i) > arr.get(i + 1)) {
+                int temp = arr.get(i);
+                arr.set(i, arr.get(i + 1));
+                arr.set(i + 1, temp);
                 swapped = true;
             }
         }
         if (!swapped) break;
-        end--;
-
-        for (int i = end - 1; i >= start; i--) {
-            if (arr[i] > arr[i + 1]) {
-                swap(arr[i], arr[i + 1]);
+        swapped = false;
+        --end;
+        for (int i = end; i > start; --i) {
+            if (arr.get(i) < arr.get(i - 1)) {
+                int temp = arr.get(i);
+                arr.set(i, arr.get(i - 1));
+                arr.set(i - 1, temp);
                 swapped = true;
             }
         }
-        start++;
+        ++start;
     }
 }
 
-void combSort(DynamicArray& arr) {
-    int n = arr.size;
-    int gap = n;
+void combSort(ManualArray& arr) {
+    int gap = arr.size;
+    const double shrink = 1.3;
     bool swapped = true;
-    double shrink = 1.3;
-
     while (gap > 1 || swapped) {
-        gap = (int)(gap / shrink);
+        gap = static_cast<int>(gap / shrink);
         if (gap < 1) gap = 1;
         swapped = false;
-
-        for (int i = 0; i < n - gap; i++) {
-            if (arr[i] > arr[i + gap]) {
-                swap(arr[i], arr[i + gap]);
+        for (int i = 0; i + gap < arr.size; ++i) {
+            if (arr.get(i) > arr.get(i + gap)) {
+                int temp = arr.get(i);
+                arr.set(i, arr.get(i + gap));
+                arr.set(i + gap, temp);
                 swapped = true;
             }
         }
     }
 }
 
-DynamicArray generateRandomArray(int size, int max_value) {
-    DynamicArray arr(size);
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, max_value);
-
+ManualArray generateArray(int size, double disorder) {
+    ManualArray arr(size);
     for (int i = 0; i < size; i++) {
-        arr.push_back(dis(gen));
+        arr.set(i, i + 1);
     }
-    return arr;
-}
-
-DynamicArray generateShuffledArray(int size, int max_value, int shuffle_percent) {
-    DynamicArray arr = generateRandomArray(size, max_value);
-    int shuffle_count = size * shuffle_percent / 100;
-
+    int numSwaps = static_cast<int>(size * disorder);
     random_device rd;
     mt19937 gen(rd());
     uniform_int_distribution<> dis(0, size - 1);
-
-    for (int i = 0; i < size; i++) {
-        arr[i] = arr[i];
-    }
-
-    for (int i = 0; i < shuffle_count; i++) {
+    for (int i = 0; i < numSwaps; ++i) {
         int idx1 = dis(gen);
         int idx2 = dis(gen);
-        swap(arr[idx1], arr[idx2]);
+        int temp = arr.get(idx1);
+        arr.set(idx1, arr.get(idx2));
+        arr.set(idx2, temp);
     }
-
     return arr;
 }
 
-template<typename Func>
-long long measureTime(Func sortFunction, DynamicArray& arr) {
-    auto start = high_resolution_clock::now();
-    sortFunction(arr);
-    auto end = high_resolution_clock::now();
-    return duration_cast<milliseconds>(end - start).count();
-}
-
-void writeResultsToCSV(const string& filename, int size, int shuffle_percent, long long bubbleTime, long long shakerTime, long long combTime) {
-    ofstream outFile;
-    outFile.open(filename, ios::app); 
-    if (outFile.is_open()) {
-        outFile << size << "," << shuffle_percent << "," << bubbleTime << "," << shakerTime << "," << combTime << endl;
-    } else {
-        cerr << "Ошибка открытия файла!" << endl;
+// Функция измерения времени
+long long measureTime(void (*sortFunction)(ManualArray&), int size, double disorder, int iterations = 5) {
+    long long total_time = 0;
+    for (int i = 0; i < iterations; ++i) {
+        ManualArray arr = generateArray(size, disorder);
+        auto start = high_resolution_clock::now();
+        sortFunction(arr);
+        auto stop = high_resolution_clock::now();
+        total_time += duration_cast<microseconds>(stop - start).count();
     }
+    return total_time / iterations;
 }
 
 int main() {
-    string filename = "sorting_times.csv";
-    ofstream outFile;
-    outFile.open(filename);
-    outFile << "N,ShufflingPercent,BubbleSortTime,ShakerSortTime,CombSortTime" << endl;
-    outFile.close();
-
-    int max_size = 100000;
-    int step = 10;
-
-    for (int size = 10; size <= max_size; size *= step) {
-        for (int shuffle_percent = 0; shuffle_percent <= 100; shuffle_percent += 20) {
-            DynamicArray arr = generateShuffledArray(size, 99999, shuffle_percent);
-
-
-            DynamicArray arr_copy = arr;
-            long long bubbleTime = measureTime(bubbleSort, arr_copy);
-
-            arr_copy = arr;
-            long long shakerTime = measureTime(shakerSort, arr_copy);
-
-            arr_copy = arr;
-            long long combTime = measureTime(combSort, arr_copy);
-
-            writeResultsToCSV(filename, size, shuffle_percent, bubbleTime, shakerTime, combTime);
-
-            cout << "N=" << size << ", Shuffle=" << shuffle_percent << "%, "
-                 << "Bubble=" << bubbleTime << "ms, "
-                 << "Shaker=" << shakerTime << "ms, "
-                 << "Comb=" << combTime << "ms" << endl;
+    int sizes[] = {10, 100, 1000, 10000, 100000};
+    double disorders[] = {0.2, 0.4, 0.6, 0.8, 1.0};
+    
+    ofstream file("sorting_results.csv");
+    file << "Algorithm,Size,Disorder,Time" << endl;
+    
+    for (int size : sizes) {
+        cout << "\nОбработка массива размером: " << size << " элементов" << endl;
+        for (double disorder : disorders) {
+            file << "Bubble Sort," << size << "," << disorder * 100 << "," << measureTime(bubbleSort, size, disorder) << endl;
+            file << "Shaker Sort," << size << "," << disorder * 100 << "," << measureTime(shakerSort, size, disorder) << endl;
+            file << "Comb Sort," << size << "," << disorder * 100 << "," << measureTime(combSort, size, disorder) << endl;
         }
     }
+    
+    file.close();
     return 0;
 }
