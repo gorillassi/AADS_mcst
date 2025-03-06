@@ -11,12 +11,11 @@ struct Queue {
     ssize_t capacity;
     ssize_t front;
     ssize_t rear;
-    ssize_t size;
 
     Queue(ssize_t cap) {
         capacity = cap;
         data = new long long[cap];
-        front = rear = size = 0;
+        front = rear = 0;
     }
 
     ~Queue() {
@@ -24,33 +23,26 @@ struct Queue {
     }
 
     bool isEmpty() {
-        return size == 0;
+        return front == rear;
     }
 
     void enqueue(long long value) {
-        if (size < capacity) {
-            data[rear] = value;
-            rear = (rear + 1) % capacity;
-            size++;
+        if (rear < capacity) {
+            data[rear++] = value;
         }
     }
 
     long long dequeue() {
-        if (size > 0) {
-            long long value = data[front];
-            front = (front + 1) % capacity;
-            size--;
-            return value;
-        }
-        return -1;
+        return data[front++];
+    }
+
+    void clear() {
+        front = rear = 0;
     }
 };
 
-long long get_digit(long long n, long long digit) {
-    for (long long i = 1; i < digit; i++) {
-        n /= BASE_N;
-    }
-    return n % BASE_N;
+long long get_digit(long long n, long long digit_place) {
+    return (n / digit_place) % BASE_N;
 }
 
 void array_radix_sort(long long* array, ssize_t size) {
@@ -63,35 +55,29 @@ void array_radix_sort(long long* array, ssize_t size) {
         }
     }
 
-    long long max_digits = 0;
-    while (max_number > 0) {
-        max_digits++;
-        max_number /= BASE_N;
-    }
+    long long digit_place = 1;
 
-    Queue* buckets[BASE_N];
-    for (int i = 0; i < BASE_N; i++) {
-        buckets[i] = new Queue(size);
-    }
+    Queue buckets[BASE_N] = { Queue(size), Queue(size), Queue(size), Queue(size), Queue(size),
+                              Queue(size), Queue(size), Queue(size), Queue(size), Queue(size) };
 
-    for (long long digit = 1; digit <= max_digits; digit++) {
+    while (max_number / digit_place > 0) {
         for (ssize_t i = 0; i < size; i++) {
-            long long d = get_digit(array[i], digit);
-            buckets[d]->enqueue(array[i]);
+            long long d = get_digit(array[i], digit_place);
+            buckets[d].enqueue(array[i]);
         }
 
         ssize_t index = 0;
         for (int i = 0; i < BASE_N; i++) {
-            while (!buckets[i]->isEmpty()) {
-                array[index++] = buckets[i]->dequeue();
+            while (!buckets[i].isEmpty()) {
+                array[index++] = buckets[i].dequeue();
             }
+            buckets[i].clear(); 
         }
-    }
 
-    for (int i = 0; i < BASE_N; i++) {
-        delete buckets[i];
+        digit_place *= BASE_N;
     }
 }
+
 
 void array_std_sort(long long* array, ssize_t size) {
     std::sort(array, array + size);
