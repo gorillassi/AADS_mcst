@@ -101,3 +101,111 @@ void Graph::rpo_numbering(const std::string& startId) {
     }
     std::cout << std::endl;
 }
+
+void Graph::dijkstra(const std::string& startId){
+    if(!nodes.count(startId)) {
+        std::cout << "Unknown node " << startId << std::endl;
+        return;
+    }
+
+    std::map<std::string, int> dist;
+    for (const auto& [id, node] : nodes) {
+        dist[id] = INF;
+    }
+    dist[startId] = 0;
+
+    std::priority_queue<
+        std::pair<int, std::string>,
+        std::vector<std::pair<int, std::string>>,
+        std::greater<std::pair<int, std::string>>
+    > queue;
+
+    queue.push({0, startId});
+
+    while(!queue.empty()) {
+        std::pair<int, std::string> current = queue.top();
+        queue.pop();
+
+        int currentDist = current.first;
+        std::string currentNode = current.second;
+
+        if(currentDist > dist[currentNode]) {
+            continue;
+        }
+
+        for(Edge* edge : nodes[currentNode]->outgoing){
+            std::string neighbor = edge->to->id;
+            int weight = edge->weight;
+
+            int newDist = dist[currentNode] + weight;
+
+            if(newDist < dist[neighbor]){
+                dist[neighbor] = newDist;
+                queue.push({newDist, neighbor});
+            }
+        }
+    }
+
+    for (const auto& entry : dist) {
+        const std::string& id = entry.first;
+        int distance = entry.second;
+    
+        if(id == startId){
+            continue;
+        }
+
+        std::cout << id << " ";
+        if (distance == INF) {
+            std::cout << "unreachable"; 
+        } else {
+            std::cout << distance; 
+        }
+        std::cout << std::endl;
+    }
+}
+
+void Graph::max_flow(const std::string& sourceId, const std::string& sinkId){
+    if (!nodes.count(sourceId) || !nodes.count(sinkId)) {
+        std::cout << "Unknown nodes " << sourceId << " " << sinkId << std::endl;
+        return;
+    }
+
+    for (Edge* e : edges) {
+        e->flow = 0;
+        if (!e->reverse) {
+            Edge* rev = new Edge(e->to, e->from, 0);
+            rev->reverse = e;
+            e->reverse = rev;
+            edges.push_back(rev);
+            e->to->outgoing.push_back(rev);
+            e->from->incoming.push_back(rev);
+        }
+    }
+
+    Node* source = nodes[sourceId];
+    Node* sink = nodes[sinkId];
+
+    int maxFlow = 0;
+    std::map<Node*, Edge*> parentMap;
+
+    while (bfs(parentMap, source, sink)) {
+        int pathFlow = INF;
+        for (Node* v = sink; v != source; ) {
+            Edge* e = parentMap[v];
+            pathFlow = std::min(pathFlow, e->weight - e->flow);
+            v = e->from;
+        }
+
+        for (Node* v = sink; v != source; ) {
+            Edge* e = parentMap[v];
+            e->flow += pathFlow;
+            e->reverse->flow -= pathFlow;
+            v = e->from;
+        }
+
+        maxFlow += pathFlow;
+        parentMap.clear();
+    }
+
+    std::cout << maxFlow << std::endl;
+}

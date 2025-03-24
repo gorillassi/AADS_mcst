@@ -6,6 +6,10 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <queue>
+#include <limits>
+
+const int INF = std::numeric_limits<int>::max();
 
 struct Node;
 struct Edge;
@@ -22,6 +26,8 @@ struct Edge {
     Node* from;
     Node* to;
     int weight;
+    int flow = 0; 
+    Edge* reverse = nullptr; 
 
     Edge(Node* f, Node* t, int w) : from(f), to(t), weight(w) {}
 };
@@ -52,6 +58,28 @@ private:
         return true;
     }
 
+    bool bfs(std::map<Node*, Edge*>& parentMap, Node* source, Node* sink) {
+        std::set<Node*> visited;
+        std::queue<Node*> q;
+        q.push(source);
+        visited.insert(source);
+
+        while (!q.empty()) {
+            Node* current = q.front(); q.pop();
+
+            for (Edge* e : current->outgoing) {
+                int capacity = e->weight - e->flow;
+                if (capacity > 0 && !visited.count(e->to)) {
+                    visited.insert(e->to);
+                    parentMap[e->to] = e;
+                    q.push(e->to);
+                    if (e->to == sink) return true;
+                }
+            }
+        }
+        return false;
+    }
+
 public:
     void add_node(const std::string& id);
 
@@ -62,4 +90,8 @@ public:
     void remove_edge(const std::string& from, const std::string& to);
 
     void rpo_numbering(const std::string& startId);
+
+    void dijkstra(const std::string& startId);
+
+    void max_flow(const std::string& sourceId, const std::string& sinkId);
 };

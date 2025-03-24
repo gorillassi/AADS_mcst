@@ -30,6 +30,18 @@ int main() {
             std::string start;
             std::cin >> start;
             graph.rpo_numbering(start);
+        } else if (cmd == "DIJKSTRA") {
+            std::string start;
+            std::cin >> start;
+            graph.dijkstra(start);
+        } else if (cmd == "MAX") {
+            std::string subcmd;
+            std::cin >> subcmd;
+            if (subcmd == "FLOW") {
+                std::string from, to;
+                std::cin >> from >> to;
+                graph.max_flow(from, to);
+            }
         }
     }
     return 0;
