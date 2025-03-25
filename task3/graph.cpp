@@ -33,16 +33,29 @@ void Graph::remove_node(const std::string& id) {
 
     Node* node = nodes[id];
 
-    for (Edge* e : node->incoming) {
-        auto& out = e->from->outgoing;
-        out.erase(std::remove(out.begin(), out.end(), e), out.end());
+    std::vector<Edge*> inEdges = node->incoming;
+    std::vector<Edge*> outEdges = node->outgoing;
+
+    for (Edge* e : inEdges) {
+        if (e->reverse && e->reverse->isResidual) {
+            Edge* rev = e->reverse;
+            rev->from->outgoing.erase(std::remove(rev->from->outgoing.begin(), rev->from->outgoing.end(), rev), rev->from->outgoing.end());
+            rev->to->incoming.erase(std::remove(rev->to->incoming.begin(), rev->to->incoming.end(), rev), rev->to->incoming.end());
+            delete rev;
+        }
+        e->from->outgoing.erase(std::remove(e->from->outgoing.begin(), e->from->outgoing.end(), e), e->from->outgoing.end());
         edges.erase(std::remove(edges.begin(), edges.end(), e), edges.end());
         delete e;
     }
 
-    for (Edge* e : node->outgoing) {
-        auto& in = e->to->incoming;
-        in.erase(std::remove(in.begin(), in.end(), e), in.end());
+    for (Edge* e : outEdges) {
+        if (e->reverse && e->reverse->isResidual) {
+            Edge* rev = e->reverse;
+            rev->from->outgoing.erase(std::remove(rev->from->outgoing.begin(), rev->from->outgoing.end(), rev), rev->from->outgoing.end());
+            rev->to->incoming.erase(std::remove(rev->to->incoming.begin(), rev->to->incoming.end(), rev), rev->to->incoming.end());
+            delete rev;
+        }
+        e->to->incoming.erase(std::remove(e->to->incoming.begin(), e->to->incoming.end(), e), e->to->incoming.end());
         edges.erase(std::remove(edges.begin(), edges.end(), e), edges.end());
         delete e;
     }
@@ -52,16 +65,8 @@ void Graph::remove_node(const std::string& id) {
 }
 
 void Graph::remove_edge(const std::string& from, const std::string& to) {
-    if (!nodes.count(from) && !nodes.count(to)) {
+    if (!nodes.count(from) || !nodes.count(to)) {
         std::cout << "Unknown nodes " << from << " " << to << std::endl;
-        return;
-    }
-    if (!nodes.count(from)) {
-        std::cout << "Unknown node " << from << std::endl;
-        return;
-    }
-    if (!nodes.count(to)) {
-        std::cout << "Unknown node " << to << std::endl;
         return;
     }
 
@@ -74,6 +79,14 @@ void Graph::remove_edge(const std::string& from, const std::string& to) {
 
     if (it != edges.end()) {
         Edge* e = *it;
+
+        if (e->reverse && e->reverse->isResidual) {
+            Edge* rev = e->reverse;
+            rev->from->outgoing.erase(std::remove(rev->from->outgoing.begin(), rev->from->outgoing.end(), rev), rev->from->outgoing.end());
+            rev->to->incoming.erase(std::remove(rev->to->incoming.begin(), rev->to->incoming.end(), rev), rev->to->incoming.end());
+            delete rev;
+        }
+
         n1->outgoing.erase(std::remove(n1->outgoing.begin(), n1->outgoing.end(), e), n1->outgoing.end());
         n2->incoming.erase(std::remove(n2->incoming.begin(), n2->incoming.end(), e), n2->incoming.end());
         edges.erase(it);
@@ -170,13 +183,17 @@ void Graph::max_flow(const std::string& sourceId, const std::string& sinkId){
         return;
     }
 
-    for (Edge* e : edges) {
+    std::vector<Edge*> edgeCopy = edges;
+
+    for (Edge* e : edgeCopy) {
         e->flow = 0;
+
         if (!e->reverse) {
             Edge* rev = new Edge(e->to, e->from, 0);
             rev->reverse = e;
+            rev->isResidual = true;
             e->reverse = rev;
-            edges.push_back(rev);
+
             e->to->outgoing.push_back(rev);
             e->from->incoming.push_back(rev);
         }
@@ -190,13 +207,13 @@ void Graph::max_flow(const std::string& sourceId, const std::string& sinkId){
 
     while (bfs(parentMap, source, sink)) {
         int pathFlow = INF;
-        for (Node* v = sink; v != source; ) {
+        for (Node* v = sink; v != source;) {
             Edge* e = parentMap[v];
             pathFlow = std::min(pathFlow, e->weight - e->flow);
             v = e->from;
         }
 
-        for (Node* v = sink; v != source; ) {
+        for (Node* v = sink; v != source;) {
             Edge* e = parentMap[v];
             e->flow += pathFlow;
             e->reverse->flow -= pathFlow;

@@ -14,6 +14,17 @@ const int INF = std::numeric_limits<int>::max();
 struct Node;
 struct Edge;
 
+struct Edge {
+    Node* from;
+    Node* to;
+    int weight;
+    int flow = 0;
+    Edge* reverse = nullptr;
+    bool isResidual = false;
+
+    Edge(Node* f, Node* t, int w) : from(f), to(t), weight(w) {}
+};
+
 struct Node {
     std::string id;
     std::vector<Edge*> outgoing;
@@ -22,23 +33,14 @@ struct Node {
     Node(const std::string& id) : id(id) {}
 };
 
-struct Edge {
-    Node* from;
-    Node* to;
-    int weight;
-    int flow = 0; 
-    Edge* reverse = nullptr; 
-
-    Edge(Node* f, Node* t, int w) : from(f), to(t), weight(w) {}
-};
-
 class Graph {
 private:
     std::map<std::string, Node*> nodes;
     std::vector<Edge*> edges;
 
     bool dfs(Node* node, std::set<std::string>& visited, std::set<std::string>& recStack,
-             std::vector<std::string>& order, std::string& loopFrom, std::string& loopTo) {
+             std::vector<std::string>& order, std::string& loopFrom, std::string& loopTo){
+
         visited.insert(node->id);
         recStack.insert(node->id);
 
@@ -57,8 +59,7 @@ private:
         order.push_back(node->id);
         return true;
     }
-
-    bool bfs(std::map<Node*, Edge*>& parentMap, Node* source, Node* sink) {
+    bool bfs(std::map<Node*, Edge*>& parentMap, Node* source, Node* sink){
         std::set<Node*> visited;
         std::queue<Node*> q;
         q.push(source);
@@ -81,13 +82,15 @@ private:
     }
 
 public:
+    ~Graph();
+
     void add_node(const std::string& id);
 
     void add_edge(const std::string& from, const std::string& to, int weight);
 
-    void remove_node(const std::string& id);
-
     void remove_edge(const std::string& from, const std::string& to);
+
+    void remove_node(const std::string& id);
 
     void rpo_numbering(const std::string& startId);
 
@@ -95,3 +98,19 @@ public:
 
     void max_flow(const std::string& sourceId, const std::string& sinkId);
 };
+
+inline Graph::~Graph() {
+    for (auto& [id, node] : nodes) {
+        delete node;
+    }
+    nodes.clear();
+
+    std::set<Edge*> uniqueEdges;
+    for (Edge* e : edges) {
+        uniqueEdges.insert(e);
+    }
+    for (Edge* e : uniqueEdges) {
+        delete e;
+    }
+    edges.clear();
+}
